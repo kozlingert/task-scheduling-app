@@ -145,6 +145,26 @@ if st.session_state.scheduling_results is not None:
                              key=f"gantt_{selected}"
                              )    
 
+            st.markdown("""
+                <style>
+                [data-testid="stMetric"] {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                }
+                [data-testid="stMetricLabel"] {
+                    width: 100%;
+                    display: flex;
+                    justify-content: center;
+                }
+                [data-testid="stMetricValue"] {
+                    width: 100%;
+                    display: flex;
+                    justify-content: center;
+                }
+                </style>
+            """, unsafe_allow_html=True)
+
             col_m1, col_m2, col_m3, col_m4 = st.columns(4)
             with col_m1:
                 st.metric("Makespan", f"{metrics["makespan"]} units")

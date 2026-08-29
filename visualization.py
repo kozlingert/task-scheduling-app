@@ -367,7 +367,8 @@ def create_loads_fig(metrics, pu_num, theme_type="light"):
         ),
         text=load_values,
         textposition="outside",
-        cliponaxis=False
+        cliponaxis=False,
+        hoverinfo="none"
     ))
 
     fig.update_layout(
