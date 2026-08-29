@@ -1,7 +1,7 @@
 import streamlit as st
 import networkx as nx
 import plotly.graph_objects as go
-from scheduling import load_dag, AVAILABLE_HEURISTICS, calculate_metrics
+from scheduling import load_dag, AVAILABLE_HEURISTICS, calculate_metrics, calculate_cp_nodes
 from visualization import compute_node_levels, create_dag_fig, create_gantt_fig, create_loads_fig
 
 
@@ -55,7 +55,8 @@ if st.session_state.loaded_dag is not None:
         show_critical_path = st.toggle("Show critical path", value=False)
     critical_path_nodes = []
     if show_critical_path:
-        critical_path_nodes = nx.dag_longest_path(dag, weight="duration")
+        critical_path_nodes = calculate_cp_nodes(dag)
+
 
     dag_fig = create_dag_fig(dag, levels, theme_type, critical_path_nodes)
     st.plotly_chart(

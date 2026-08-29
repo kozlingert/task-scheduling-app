@@ -136,13 +136,7 @@ class LongestTaskFirstStrategy(SchedulingHeuristicStrategy):
  
           while ready_tasks:
 
-               current_task = ready_tasks[0]
-               max_duration = dag.nodes[current_task]["duration"]
-               for task in ready_tasks[1:]:
-                    duration = dag.nodes[task]["duration"]
-                    if duration > max_duration:
-                         max_duration = duration
-                         current_task = task
+               current_task = max(ready_tasks, key = lambda task: dag.nodes[task]["duration"])
                ready_tasks.remove(current_task)
 
                best_pu = None
@@ -186,21 +180,27 @@ class LongestTaskFirstStrategy(SchedulingHeuristicStrategy):
 
           return schedule
 
+
+def calculate_cp_ranks(dag):
+     ranks = {}
+
+     for task in reversed(list(nx.topological_sort(dag))):
+          duration = dag.nodes[task]["duration"]
+          successors = list(dag.successors(task))
+          if not successors:
+               ranks[task] = duration
+          else:
+               ranks[task] = duration + max( 
+                    dag.edges[task, successor]["communication"] + ranks[successor] for successor in successors
+                    )
+
+     return ranks
+
 class CriticalPathStrategy(SchedulingHeuristicStrategy):
      def generate_schedule(self, dag):
           pu_num = self.pu_num
 
-          ranks = {}
-          for task in reversed(list(nx.topological_sort(dag))):
-               duration = dag.nodes[task]["duration"]
-               successors = list(dag.successors(task))
-
-               if not successors:
-                    ranks[task] = duration
-               else:
-                    ranks[task] = duration + max( 
-                         dag.edges[task, successor]["communication"] + ranks[successor] for successor in successors
-                         )
+          ranks = calculate_cp_ranks(dag)
 
           remaining_predecessors = { task: dag.in_degree(task) for task in dag.nodes() }
           ready_tasks = [ task for task, count in remaining_predecessors.items() if count == 0]
@@ -208,13 +208,7 @@ class CriticalPathStrategy(SchedulingHeuristicStrategy):
           pu_free_times = [0] * pu_num
 
           while ready_tasks:
-               current_task = ready_tasks[0]
-               max_rank = ranks[current_task]
-               for task in ready_tasks[1:]:
-                    task_rank = ranks[task]
-                    if task_rank > max_rank:
-                         max_rank = task_rank
-                         current_task = task
+               current_task = max(ready_tasks, key = lambda task: ranks[task])
                ready_tasks.remove(current_task)
 
                best_pu = None
@@ -288,20 +282,11 @@ def calculate_metrics(dag, schedule, pu_num):
                longest[node] = dag.nodes[node]["duration"]
                predecessors_on_path[node] = None
           else:
-               best_predecessor = None
-               best_incoming = None
-               for predecessor in predecessors:
-                    predecessor_pu = schedule[predecessor]["pu"]
-                    node_pu = schedule[node]["pu"]
-
-                    communication = dag.edges[predecessor, node].get("communication", 0) if predecessor_pu != node_pu else 0
-                    path_length = longest[predecessor] + communication + dag.nodes[node].get("duration", 0)
-
-                    if best_incoming is None or path_length > best_incoming:
-                         best_incoming = path_length
-                         best_predecessor = predecessor
-
-               longest[node] = best_incoming
+               best_predecessor = max(predecessors, key = lambda pred: longest[pred] + 
+                                      (dag.edges[pred, node].get("communication", 0) if schedule[pred]["pu"] != schedule[node]["pu"] else 0) +
+                                      dag.nodes[node].get("duration", 0))
+               communication = dag.edges[best_predecessor, node].get("communication", 0) if schedule[best_predecessor]["pu"] != schedule[node]["pu"] else 0
+               longest[node] = longest[best_predecessor] + communication + dag.nodes[node].get("duration", 0)
                predecessors_on_path[node] = best_predecessor
 
      end_node = list(longest.keys())[0]
@@ -339,5 +324,17 @@ def calculate_metrics(dag, schedule, pu_num):
      return metrics_res
      
 
+def calculate_cp_nodes(dag):
+     ranks = calculate_cp_ranks(dag)
+     start_node = max(dag.nodes(), key=lambda node: ranks[node])
+     cp_nodes= [start_node]
+     current_node = start_node
 
+     while list(dag.successors(current_node)):
+          successors = list(dag.successors(current_node))
+          next_node = max(successors,key=lambda succ: dag.edges[current_node, succ]["communication"] + ranks[succ],)
+          cp_nodes.append(next_node)
+          current_node = next_node
+
+     return cp_nodes
      
