@@ -64,22 +64,35 @@ def compute_edges(u, v, node_coords, levels, grouped_nodes):
 
     if level_diff > 1:
         beetween_levels = range(levels[u] +1, levels[v])
-        beetween_ys = [
-            node_coords[n][1]
+        beetween_nodes = [
+            node_coords[n]
             for lvl in beetween_levels
             for n in grouped_nodes.get(lvl, [])
         ]
 
-        if beetween_ys:
+        if beetween_nodes:
+            beetween_ys = [y for _, y in beetween_nodes]
             avg_beetween_y = sum(beetween_ys) / len(beetween_ys)
             direction = 1 if mid_y >= avg_beetween_y else -1
-            max_extent = max(abs(y-mid_y) for y in beetween_ys)
+            buffer = VERTICAL_SPACING * 0.6
+
+            myb_control_ys = []
+            for node_x, node_y in beetween_nodes:
+                t = (node_x - x0) / (x2 - x0)
+                weight = 2*t*(1-t)
+                line_component = (1-t)**2 * y0 + t**2 * y2
+                target_y = node_y + direction * buffer
+                myb_control_ys.append((target_y - line_component)/weight) 
+
+            control_y = min(myb_control_ys) if direction == -1 else max(myb_control_ys)
+            reserve_dist = mid_y + direction * VERTICAL_SPACING
+            control_y = min(control_y, reserve_dist) if direction == -1 else max(control_y, reserve_dist)
+
         else:
-            direction = 1
-            max_extent = VERTICAL_SPACING
-        control_y = mid_y + (max_extent + VERTICAL_SPACING * 0.6) * direction
+            control_y = mid_y + VERTICAL_SPACING
     else:
         control_y = mid_y
+
     edge_coords = quadratic_bezier_curve( (x0, y0), (mid_x, control_y), (x2, y2))
 
     return edge_coords
