@@ -215,39 +215,42 @@ if st.session_state.scheduling_results is not None:
         ("Load Imbalance", metrics1["load_imbalance"], metrics2["load_imbalance"]),
     ]
 
-    diffs = []
-    better_count = 0
-    worse_count = 0
+    makespan1 = metrics1["makespan"]
+    makespan2 = metrics2["makespan"]
+    makespan_diff = makespan2 - makespan1
 
-    for label, v1, v2 in comparisons:
-        diff = v2-v1
-        diffs.append(diff)
+    sec1_better = sum(1 for label, v1, v2 in comparisons if label != "Makespan" and v1 < v2)
+    sec2_better = sum(1 for label, v1, v2 in comparisons if label != "Makespan" and v1 > v2)
 
-        if v1>v2:
-            better_count += 1
-        elif v2>v1:
-            worse_count += 1
+
+    if makespan_diff < 0:
+        st.success(f"**{name2}** achieves shorter makespan as primary goal.")
+        if sec1_better > 0:
+            st.info(f"Trade off: **{name2}** has a shorter makespan, but is worse on at least one other metric compared to {name1}.")
+    elif makespan_diff > 0:
+        st.success(f"**{name1}** achieves shorter makespan as primary goal.")
+        if sec2_better > 0:
+            st.info(f"Trade off: **{name1}** has a shorter makespan, but is worse on at least one other metric compared to {name2}.")
+    else:
+        if sec2_better > sec1_better:
+            st.success(f"**{name2}** achieves better secondary metrics and identical makespan as **{name1}**.")
+        elif sec1_better > sec2_better:
+            st.success(f"**{name1}** achieves better secondary metrics and identical makespan as **{name2}**.")
+        else:
+            st.info(f"**{name1}** and **{name2}** are evenly matched ({sec1_better} better metrics each).")
+
 
     st.caption(f"Values shown are for **{name2}**, with change relative to **{name1}**.")
-
-    if better_count > worse_count:
-        st.success(f"**{name2}** performs better than **{name1}** on {better_count} of {len(comparisons)} metrics.")
-    elif worse_count > better_count:
-        st.success(f"**{name1}** performs better than **{name2}** on {worse_count} of {len(comparisons)} metrics.")
-    else:
-        st.info(f"**{name1}** and **{name2}** are evenly matched ({better_count} better metrics each).")
-
     
 
     comp_cols = st.columns(len(comparisons))
-    for i in range(len(comparisons)):
-        label, v1, v2 = comparisons[i]
-        diff = diffs[i]
+    for col, (label, v1, v2) in zip(comp_cols, comparisons):
+        diff = v2-v1
         if label == "Load Imbalance":
             value_str = "0.00 %" if diff == 0 else f"{diff:+.2f} %"
         else:
             value_str = "0 units" if diff == 0 else f"{diff:+d} units"
-        with comp_cols[i]:
+        with col:
             st.metric(
                 label=label,
                 value=value_str
