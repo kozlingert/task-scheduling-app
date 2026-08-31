@@ -38,7 +38,7 @@ if file and file != st.session_state.current_dag:
         st.session_state.levels = compute_node_levels(dag)
         st.session_state.scheduling_results = None  
     except ValueError as e:
-        st.error(f"An error has occured: {e}")
+        st.error(f"An error has occurred: {e}")
         st.session_state.current_dag = None
         st.session_state.loaded_dag = None
         st.session_state.levels = None
@@ -174,7 +174,7 @@ if st.session_state.scheduling_results is not None:
             with col_m3:
                 st.metric("Total comm. cost", f"{metrics["total_communication_cost"]} units")
             with col_m4:          
-                st.metric("Load imbalance", f"{metrics["load_imbalance"]} units")
+                st.metric("Load imbalance", f"{metrics["load_imbalance"]:.2f} %")
 
             st.markdown("<div style='margin-top: 1.75rem;'></div>", unsafe_allow_html=True)
 
@@ -243,7 +243,10 @@ if st.session_state.scheduling_results is not None:
     for i in range(len(comparisons)):
         label, v1, v2 = comparisons[i]
         diff = diffs[i]
-        value_str = "0 units" if diff == 0 else f"{diff:+d} units"
+        if label == "Load Imbalance":
+            value_str = "0.00 %" if diff == 0 else f"{diff:+.2f} %"
+        else:
+            value_str = "0 units" if diff == 0 else f"{diff:+d} units"
         with comp_cols[i]:
             st.metric(
                 label=label,

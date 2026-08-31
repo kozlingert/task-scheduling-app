@@ -1,6 +1,7 @@
 import networkx as nx
 import json
 from abc import ABC, abstractmethod
+import statistics
 
 
 def load_dag(file):
@@ -309,7 +310,7 @@ def calculate_metrics(dag, schedule, pu_num):
           pu = info["pu"]
           loads[pu] += dag.nodes[task]["duration"]
 
-     load_imbalance = max(loads.values()) - min(loads.values())
+     load_imbalance = int( max(loads.values()) - statistics.mean(loads.values()) ) / statistics.mean(loads.values()) * 100
 
      metrics_res = {
           "makespan": makespan,
