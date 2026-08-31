@@ -226,11 +226,11 @@ if st.session_state.scheduling_results is not None:
     if makespan_diff < 0:
         st.success(f"**{name2}** achieves shorter makespan as primary goal.")
         if sec1_better > 0:
-            st.info(f"Trade off: **{name2}** has a shorter makespan, but is worse on at least one other metric compared to {name1}.")
+            st.info(f"Trade-off: **{name2}** has a shorter makespan, but is worse on at least one other metric compared to {name1}.")
     elif makespan_diff > 0:
         st.success(f"**{name1}** achieves shorter makespan as primary goal.")
         if sec2_better > 0:
-            st.info(f"Trade off: **{name1}** has a shorter makespan, but is worse on at least one other metric compared to {name2}.")
+            st.info(f"Trade-off: **{name1}** has a shorter makespan, but is worse on at least one other metric compared to {name2}.")
     else:
         if sec2_better > sec1_better:
             st.success(f"**{name2}** achieves better secondary metrics and identical makespan as **{name1}**.")
